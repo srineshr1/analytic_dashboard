@@ -1,0 +1,16 @@
+{
+  "name": "shopverse-analytics",
+  "private": true,
+  "version": "2.0.0",
+  "description": "User analytics: tracker, Express + MongoDB API, ShopVerse demo store and analytics dashboard",
+  "scripts": {
+    "install:all": "npm --prefix backend install && npm --prefix store install && npm --prefix dashboard install",
+    "build": "npm --prefix store run build && npm --prefix dashboard run build",
+    "setup": "npm run install:all && npm run build",
+    "dev": "npm --prefix backend run dev:memory",
+    "start": "npm --prefix backend start",
+    "seed": "npm --prefix backend run seed --",
+    "simulate": "npm --prefix backend run simulate --",
+    "test": "npm --prefix backend test"
+  }
+}

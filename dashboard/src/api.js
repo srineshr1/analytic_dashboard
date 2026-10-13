@@ -1,22 +1,53 @@
-// Empty => same origin (Vite dev proxy, or dashboard served by the API in prod).
-const BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+// Thin fetch wrapper for the analytics API.
+// VITE_API_URL can point the dashboard at an API on another origin; by default
+// requests are same-origin (served by the backend, or proxied by Vite in dev).
+const PREFIX = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
 
-async function get(path, params) {
-  const qs = params ? `?${new URLSearchParams(params)}` : '';
-  const res = await fetch(`${BASE}${path}${qs}`);
-  if (!res.ok) {
-    let msg = `${res.status} ${res.statusText}`;
-    try {
-      msg = (await res.json()).error || msg;
-    } catch { /* non-JSON error */ }
-    throw new Error(msg);
+export class ApiError extends Error {
+  constructor(message, status) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
   }
-  return res.json();
 }
 
-export const api = {
-  sessions: (limit, skip) => get('/api/sessions', { limit, skip }),
-  sessionEvents: (id) => get(`/api/sessions/${encodeURIComponent(id)}/events`),
-  pages: () => get('/api/pages'),
-  heatmap: (pageUrl) => get('/api/heatmap', { page_url: pageUrl }),
-};
+/** Builds "?a=1&b=2", skipping null/undefined/empty values. */
+export function buildQuery(params = {}) {
+  const qs = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v === undefined || v === null || v === '' || v === false) continue;
+    qs.set(k, v === true ? '1' : String(v));
+  }
+  const s = qs.toString();
+  return s ? `?${s}` : '';
+}
+
+export function apiUrl(path, params) {
+  return `${PREFIX}${path}${buildQuery(params)}`;
+}
+
+export async function apiGet(path, params, { signal } = {}) {
+  let res;
+  try {
+    res = await fetch(apiUrl(path, params), { signal, headers: { Accept: 'application/json' } });
+  } catch (err) {
+    if (err.name === 'AbortError') throw err;
+    throw new ApiError('Could not reach the analytics API. Is the backend running?', 0);
+  }
+
+  let body = null;
+  const text = await res.text();
+  if (text) {
+    try {
+      body = JSON.parse(text);
+    } catch {
+      if (res.ok) throw new ApiError('The API returned an invalid response.', res.status);
+    }
+  }
+
+  if (!res.ok) {
+    const msg = body?.error || `${res.status} ${res.statusText || 'Request failed'}`;
+    throw new ApiError(res.status === 404 ? `Not found: ${msg}` : msg, res.status);
+  }
+  return body;
+}

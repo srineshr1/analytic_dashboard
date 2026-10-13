@@ -19,7 +19,7 @@ before(async () => {
   mongod = await MongoMemoryServer.create();
   await mongoose.connect(mongod.getUri('test'));
   await Event.syncIndexes();
-  app = createApp();
+  app = createApp({ spaDirs: {} });
 });
 
 after(async () => {

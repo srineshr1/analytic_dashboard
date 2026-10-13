@@ -1,11 +1,7 @@
 import mongoose from 'mongoose';
-import path from 'node:path';
-import fs from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { pathToFileURL } from 'node:url';
 import { createApp } from './app.js';
 import { Event } from './models/Event.js';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const PORT = Number(process.env.PORT) || 4000;
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/analytics';
@@ -13,14 +9,13 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/analyt
 export async function start(uri = MONGODB_URI) {
   await mongoose.connect(uri);
   await Event.syncIndexes();
-  console.log(`Connected to MongoDB`);
+  console.log('Connected to MongoDB');
 
-  const dashboardDir = path.resolve(__dirname, '..', '..', 'dashboard', 'dist');
-  const app = createApp({ dashboardDir: fs.existsSync(dashboardDir) ? dashboardDir : undefined });
-
+  const app = createApp();
   const server = app.listen(PORT, () => {
-    console.log(`API listening on http://localhost:${PORT}`);
-    console.log(`Demo site:     http://localhost:${PORT}/demo/`);
+    console.log(`\n  Home:       http://localhost:${PORT}/`);
+    console.log(`  Store:      http://localhost:${PORT}/store/`);
+    console.log(`  Dashboard:  http://localhost:${PORT}/dashboard/\n`);
   });
 
   const shutdown = async () => {
@@ -33,7 +28,7 @@ export async function start(uri = MONGODB_URI) {
   return server;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   start().catch((err) => {
     console.error('Failed to start:', err.message);
     process.exit(1);
