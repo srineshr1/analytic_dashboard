@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.env
+.playwright-mcp/
+*.log
+
+# Assignment brief (not ours to publish)
+*.pdf

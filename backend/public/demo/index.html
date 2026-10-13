@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Acme Store – Home</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="/tracker.js" defer></script>
+</head>
+<body>
+  <header>
+    <span class="logo">Acme Store</span>
+    <nav aria-label="Main">
+      <a href="./" aria-current="page">Home</a>
+      <a href="products.html">Products</a>
+      <a href="checkout.html">Checkout</a>
+    </nav>
+  </header>
+  <main>
+    <section class="hero">
+      <h1>Summer sale – up to 50% off</h1>
+      <p>This is a demo page. Every page view and click here is tracked and shows up in the dashboard.</p>
+      <a class="btn light" id="shop-now" href="products.html">Shop now</a>
+    </section>
+    <h2>Why shop with us</h2>
+    <div class="grid">
+      <div class="card"><h3>Free shipping</h3><p>On all orders over $50.</p><button class="btn" id="learn-shipping">Learn more</button></div>
+      <div class="card"><h3>30-day returns</h3><p>No questions asked.</p><button class="btn" id="learn-returns">Learn more</button></div>
+      <div class="card"><h3>24/7 support</h3><p>We're always here.</p><button class="btn" id="contact">Contact us</button></div>
+    </div>
+  </main>
+  <footer>Demo site for the analytics assignment.</footer>
+  <div id="debug" aria-live="polite"></div>
+  <script src="demo.js" defer></script>
+</body>
+</html>
