@@ -190,7 +190,7 @@ test('GET /api/sessions filters and enriches; /api/live; heatmap by group', asyn
 });
 
 test('unbuilt SPA returns a helpful 503; landing page is served', async () => {
-  const appWithDirs = createApp({ spaDirs: { store: '/nonexistent/store' } });
+  const appWithDirs = createApp({ spaDirs: { store: '/nonexistent/store' }, files: {} });
   const res = await request(appWithDirs).get('/store/product/1').expect(503);
   assert.match(res.text, /npm run build/);
   await request(appWithDirs).get('/').expect(200).expect(/ShopVerse/);

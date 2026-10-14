@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { Event } from './models/Event.js';
+import { Event } from './events.js';
 import { validateEvent, extractBatch, normalizePageUrl, MAX_BATCH } from './validate.js';
 import { parseRange, timeMatch, clampInt, deviceMatch } from './range.js';
 import stats from './stats.js';

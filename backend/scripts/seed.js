@@ -2,7 +2,7 @@
 // Standalone: `npm run seed` (uses MONGODB_URI; SESSIONS, DAYS, BASE_URL optional). Also used by dev-memory.js.
 import mongoose from 'mongoose';
 import { pathToFileURL } from 'node:url';
-import { Event } from '../src/models/Event.js';
+import { Event } from '../src/events.js';
 import { validateEvent } from '../src/validate.js';
 import { generateSession, makeRng, HOUR_WEIGHTS } from './shoppers.js';
 

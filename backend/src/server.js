@@ -1,15 +1,14 @@
 import mongoose from 'mongoose';
 import { pathToFileURL } from 'node:url';
 import { createApp } from './app.js';
-import { Event } from './models/Event.js';
+import { ensureDb } from './db.js';
 
 const PORT = Number(process.env.PORT) || 4000;
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/analytics';
 
 export async function start(uri = MONGODB_URI) {
-  await mongoose.connect(uri);
-  await Event.syncIndexes();
-  console.log('Connected to MongoDB');
+  process.env.MONGODB_URI = uri;
+  await ensureDb();
 
   const app = createApp();
   const server = app.listen(PORT, () => {

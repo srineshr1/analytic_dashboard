@@ -4,22 +4,82 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import routes from './routes.js';
+import { ensureDb } from './db.js';
+import { spaFiles } from './spa-files.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..', '..');
-const PUBLIC_DIR = path.join(__dirname, '..', 'public');
+
+function firstExisting(candidates, marker) {
+  for (const dir of candidates) {
+    if (fs.existsSync(marker ? path.join(dir, marker) : dir)) return dir;
+  }
+  return candidates[0];
+}
+
+const PUBLIC_DIR = firstExisting(
+  [path.join(__dirname, '..', 'public'), path.join(process.cwd(), 'backend', 'public'), path.join('/var/task', 'backend', 'public')],
+  'index.html',
+);
+
+function spaDir(name) {
+  return firstExisting(
+    [path.join(ROOT, name, 'dist'), path.join(process.cwd(), name, 'dist'), path.join('/var/task', name, 'dist')],
+    'index.html',
+  );
+}
 
 export const DEFAULT_SPA_DIRS = {
-  store: path.join(ROOT, 'store', 'dist'),
-  dashboard: path.join(ROOT, 'dashboard', 'dist'),
+  store: spaDir('store'),
+  dashboard: spaDir('dashboard'),
 };
 
-/** Serve a built single-page app under /<mount>, falling back to index.html for client routes. */
-function mountSpa(app, mount, dir) {
+const SPA_TYPES = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.svg': 'image/svg+xml',
+  '.json': 'application/json; charset=utf-8',
+};
+
+function spaRelative(mount, requestPath) {
+  const prefix = `/${mount}`;
+  const rest = requestPath === prefix || requestPath.startsWith(`${prefix}/`) ? requestPath.slice(prefix.length) : requestPath;
+  const rel = rest.replace(/^\/+/, '');
+  return rel === '' ? 'index.html' : rel;
+}
+
+function sendSpaFile(res, rel, body) {
+  const ext = path.extname(rel).toLowerCase();
+  res.setHeader('Content-Type', SPA_TYPES[ext] || 'application/octet-stream');
+  res.setHeader('Cache-Control', ext === '.html' ? 'public, max-age=60' : 'public, max-age=3600');
+  res.send(body);
+}
+
+/**
+ * Serve a built single-page app under /<mount>.
+ * A directory on disk is used when one exists (local npm start). On Vercel the
+ * Vite output is imported from spa-files.js, because the function bundle does
+ * not keep store/dist or dashboard/dist.
+ */
+function mountSpa(app, mount, dir, files) {
   const index = path.join(dir, 'index.html');
-  app.use(`/${mount}`, express.static(dir, { index: false, maxAge: '1h' }));
-  app.get([`/${mount}`, `/${mount}/{*splat}`], (_req, res) => {
-    if (fs.existsSync(index)) return res.sendFile(index);
+  const onDisk = fs.existsSync(index);
+  if (onDisk) app.use(`/${mount}`, express.static(dir, { index: false, maxAge: '1h' }));
+
+  app.get([`/${mount}`, `/${mount}/{*splat}`], (req, res) => {
+    const rel = spaRelative(mount, req.path);
+    if (onDisk) {
+      if (rel === 'index.html' || !path.extname(rel)) return res.sendFile(index);
+      return res.status(404).type('text/plain').send('Not found');
+    }
+
+    const bundled = files[`${mount}/${rel}`];
+    if (bundled != null) return sendSpaFile(res, rel, bundled);
+    if (files[`${mount}/index.html`] != null) {
+      if (!path.extname(rel)) return sendSpaFile(res, 'index.html', files[`${mount}/index.html`]);
+      return res.status(404).type('text/plain').send('Not found');
+    }
     res
       .status(503)
       .type('text/plain')
@@ -27,9 +87,13 @@ function mountSpa(app, mount, dir) {
   });
 }
 
-export function createApp({ spaDirs = DEFAULT_SPA_DIRS } = {}) {
+export function createApp({ spaDirs = DEFAULT_SPA_DIRS, files = spaFiles } = {}) {
   const app = express();
   app.disable('x-powered-by');
+
+  app.use((req, res, next) => {
+    ensureDb().then(() => next(), next);
+  });
 
   // The tracker runs on arbitrary sites, so ingest must accept any origin.
   // Credentials are never used (session id travels in the body), so this is safe.
@@ -49,8 +113,8 @@ export function createApp({ spaDirs = DEFAULT_SPA_DIRS } = {}) {
   // tracker.js + landing page.
   app.use(express.static(PUBLIC_DIR, { maxAge: '5m' }));
 
-  if (spaDirs.store) mountSpa(app, 'store', spaDirs.store);
-  if (spaDirs.dashboard) mountSpa(app, 'dashboard', spaDirs.dashboard);
+  if (spaDirs.store) mountSpa(app, 'store', spaDirs.store, files);
+  if (spaDirs.dashboard) mountSpa(app, 'dashboard', spaDirs.dashboard, files);
 
   // eslint-disable-next-line no-unused-vars
   app.use((err, _req, res, _next) => {

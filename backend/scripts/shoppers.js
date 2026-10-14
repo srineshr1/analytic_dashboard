@@ -3,14 +3,11 @@
 // Each session follows a persona (bouncer, browser, searcher, cart abandoner, buyer) through the
 // store's real routes. Clicks are placed inside real element boxes captured from the built store
 // (store-layouts.json), so heatmaps line up with the page underneath.
-import { readFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import products from '../../store/src/data/products.json' with { type: 'json' };
+import layouts from './store-layouts.json' with { type: 'json' };
 
-const DIR = path.dirname(fileURLToPath(import.meta.url));
-const products = JSON.parse(readFileSync(path.join(DIR, '..', '..', 'store', 'src', 'data', 'products.json'), 'utf8'));
-const LAYOUTS = JSON.parse(readFileSync(path.join(DIR, 'store-layouts.json'), 'utf8')).pages;
+const LAYOUTS = layouts.pages;
 
 // ---------- random helpers ----------
 export function makeRng(seed = Date.now()) {

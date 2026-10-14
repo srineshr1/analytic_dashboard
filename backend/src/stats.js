@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { Event } from './models/Event.js';
+import { Event } from './events.js';
 import { parseRange, timeMatch, clampInt, deviceMatch } from './range.js';
 import { normalizePageUrl } from './validate.js';
 
